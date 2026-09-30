@@ -4,7 +4,7 @@ A browser-based Inter-Rater Reliability calculator for the GenAI Evidence Hub sy
 
 ## Getting Started
 
-Open `irr_calculator.html` in any browser. Upload a coding sheet (`.csv`, `.xlsx`, `.xls`, `.tsv`, or `.txt`), confirm the auto-detected sheet version, choose which columns to include, and click **Calculate IRR**.
+Open `index.html` in any browser. Upload a coding sheet (`.csv`, `.xlsx`, `.xls`, `.tsv`, or `.txt`), confirm the auto-detected sheet version, choose which columns to include, and click **Calculate IRR**.
 
 ## File Requirements
 
