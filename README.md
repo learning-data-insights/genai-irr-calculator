@@ -15,11 +15,26 @@ Open `index.html` in any browser. Upload a coding sheet (`.csv`, `.xlsx`, `.xls`
 
 ## Features
 
-- **Auto-detection** of coding sheet version (Automated Scoring / Item Generation / Formative Feedback) from signature columns, with manual override. Column-name matching is whitespace/case-tolerant, so stray spaces in real export headers don't cause a column to be silently missed.
+- **Auto-detection** of coding sheet version (Automated Scoring / Item Generation / Formative Feedback) from signature columns, with manual override. Column-name matching is whitespace/case-tolerant, so stray spaces in real export headers don't cause a column to be silently missed. The version cards and the results header show which template version the tool's column list was built from.
 - **Column picker** with free-text fields flagged and excluded from the default selection.
 - **Coder filter** to restrict calculation to a subset of coders.
 - **Results at three levels**: overall, by coder pair, and an expandable pair → paper → RQ accordion.
 - **Export** to CSV or formatted Excel.
+
+## Supported Coding Sheet Templates
+
+The column lists in the tool were last checked against these template versions on 2026-10-01.
+
+| Domain | Template version | Last updated | Columns in the tool | Source of the IRR column list |
+|---|---|---|---|---|
+| Automated Scoring | 1.5.0 | Not recorded | 161 | Coding Sheet headers and the IRR rule used by the other two domains (see below) |
+| Item Generation | 0.0.8 | 2026-07-15 | 201 | "Used for IRR?" column on the Feature descriptions tab |
+| Formative Feedback | 0.0.2 | 2026-09-14 | 191 | "Used for IRR?" column on the Feature descriptions tab |
+
+- The Item Generation and Formative Feedback columns include the per-metric `evaluation results` and `Additional evaluation method notes` fields. They appear in the column picker as free-text and are not selected by default.
+- The Automated Scoring workbook has no "Used for IRR?" column and no version stamp on its definitions tab. Its version number comes from the last entry in its "Coding sheet history" log, which has no date. Its column list follows the same rule as the other two domains (study design, fairness, research question design and metric fields, without comments, reviewer details and inclusion fields) and matches the Coding Sheet headers exactly.
+- The "Required?" column in each template describes what coders must fill in. The calculator does not use it.
+- The Field lists tab (dropdown options) matters here in one place only: it identifies which fields allow several choices. See Normalization.
 
 ## Methodology
 
@@ -37,7 +52,7 @@ Krippendorff's α is computed by **recoding every (Paper, RQ, Field) unit** so t
 
 **Free-text exclusion.** `Research Question`, `Tested LLM Model & Version Used`, `Tested Model & Techniques List`, `Baseline list`, every `Metric{n}-evaluation results` / `Metric{n}-Additional evaluation method notes` field, and every `Metric{n}-min source` / `Metric{n}-max source` / `Metric{n}-min baseline` / `Metric{n}-max baseline` field are exact-string matched and prone to false mismatches from paraphrasing — confirmed against real cases where Aaron scores two very differently-worded descriptions as agreement because they refer to the same underlying thing. They're shown in the column picker with a free-text warning badge but excluded from the default selection. (This does not cover the baseline `...value`, `...difference`, or `...significant` sub-fields, which hold actual numbers/verdicts and are compared normally.)
 
-**Normalization.** Numeric values are normalized so `85`, `85.0`, and `85%` compare correctly. Multiselect/list cells are compared order-independently.
+**Normalization.** Numeric values are normalized so `85`, `85.0`, and `85%` compare correctly. Multiselect cells are compared order-independently, so `Few-shot, Zero-shot` and `Zero-shot, Few-shot` count as the same answer. The fields treated this way are `AI Innovation`, `Prompting techniques`, `Bias / Fairness Type`, and each metric's `analysis type`, `category` and `truth`. They are the fields marked Multiselection on the coding sheets that can be selected for IRR. `Education Content` is left out on purpose because it is single-select in Automated Scoring and one of its options contains a comma.
 
 **Overall figure.** The Overall α shown at the top is the **simple average of the per-pair α figures** below it — each coder pair counts equally, regardless of how many research questions it contributed.
 
@@ -50,11 +65,13 @@ The methodology has been checked twice against independent rounds of real coding
 ## Known Limitations
 
 - Two coder pairs in the 7/15/2026 validation round (the two with the fewest shared RQs) still show a real, not-fully-explained gap between the tool's output and Aaron's highlighted ground truth, after direct unit-level tracing turned up no further bug. Likely sample-size sensitivity, but not confirmed.
-- **Automated Scoring's column definition has not been updated to the current (v0.0.7) field names** and may be stale in the same way Item Generation's was before its update — unconfirmed pending the same kind of Feature Descriptions template used to fix Item Generation and Formative Feedback.
-- Formative Feedback's own template marks `Metric{n}-Additional evaluation method notes` as used for IRR, unlike Item Generation. The tool currently still excludes it as free text everywhere; worth confirming with Aaron whether that's the intended behavior for this domain specifically.
-- Formative Feedback's auto-detection relies on `Feedback usage reported` as a tiebreaker column against Item Generation (their other signature columns are identical). This is unconfirmed against a real Automated Scoring or Item Generation export — if that column name ever turns up there too, an FF sheet could still misdetect as IG. Worth a quick check the first time a real FF sheet is run through auto-detect.
+- Automated Scoring has no "Used for IRR?" column in its template, so its column list cannot be confirmed against an explicit IRR flag. It matches the Coding Sheet headers exactly and follows the rule used for the other two domains. The Automated Scoring template did not receive the v0.0.7 fairness renames, so its fairness columns are still `Fairness acknowledged` and `Bias / Fairness Evaluated`. Worth confirming with Aaron that this list is the intended IRR set.
+- Formative Feedback's template marks `Metric{n}-Additional evaluation method notes` as used for IRR, and still does in v0.0.2. Item Generation marks it as not used. The tool still excludes it as free text for every domain, so it appears unchecked in the picker for Formative Feedback. Worth confirming with Aaron whether Formative Feedback should include it.
+- Item Generation's Feature descriptions tab still lists the older names `Fairness acknowledged` and `Bias / Equity Evaluated`. Its Coding sheet headers and version log use `Bias/Fairness acknowledged` and `Bias / Fairness Type`, so the tool follows the headers. The Feature descriptions tab needs the same rename.
+- Formative Feedback auto-detection uses `Feedback usage reported`, `Feedback usage numbers` and `Feedback Content` to separate it from Item Generation. None of the three appears in the current Item Generation or Automated Scoring templates. This has been checked against the templates only. The first real Formative Feedback export run through auto-detect should confirm it.
+- The order-independent comparison of multiselect fields (see Normalization) has not been validated against Aaron's hand-calculated figures. Earlier validation rounds ran before it applied to any field, so figures for sheets with several selections in one cell may differ slightly from earlier rounds.
 - Metric realignment uses a greedy best-match assignment, not a formally optimal one. This is a reasonable approximation given the small number of metrics typically coded per research question, but could in principle pick a slightly suboptimal pairing when a research question has an unusually large number of metrics.
-- Near-duplicate dropdown vocabulary in the coding scheme itself (e.g. "Item rating" vs. "Item quality rating") will still register as a mismatch — this is a coding-scheme issue, not something the calculator can resolve.
+- Near-duplicate dropdown vocabulary in the coding scheme itself will still register as a mismatch. This is a coding-scheme issue that the calculator cannot resolve. One current example is the metric `ROGUE` in the Automated Scoring and Item Generation lists and `ROUGE` in the Formative Feedback list. It only matters if sheets from different domains are combined.
 - Source data integrity problems (e.g. dropped reviewer entries when new rows are added to a coding sheet) will still produce a misleading alpha for the affected pair. The tool can't detect this on its own — it can only compute honestly on the data it's given.
 
 ---

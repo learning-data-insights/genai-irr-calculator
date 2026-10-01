@@ -1,6 +1,30 @@
 # Changelog
 
-## 2026-09-30 — Main file renamed to index.html
+## 2026-10-01 — Checked against current templates (AS 1.5.0, IG 0.0.8, FF 0.0.2); multiselect fix
+
+Reviewed the three current coding spreadsheet templates in full: the Feature descriptions tab (Required? and Used for IRR? columns, plus the version number), the Coding sheet headers and field types, and the Field lists tab (dropdown options). The Item Generation and Formative Feedback column lists already matched their templates. The changes below are version tracking, auto-detection, and one multiselect correction.
+
+### Reviewed with no change needed
+- **Item Generation (template v0.0.8, updated 2026-07-15).** All 181 fields marked "Used for IRR? = Y" are covered. 179 appear in the Coding sheet under the same name. The other two (`Fairness acknowledged`, `Bias / Equity Evaluated`) are listed on the Feature descriptions tab under older names. The Coding sheet headers and the version log use `Bias/Fairness acknowledged` and `Bias / Fairness Type`, which the tool already uses. v0.0.8 renamed `Bias / Fairness conclusion` to `Bias / Fairness addressed` (not used for IRR), added `Medical` and `Reading` to Education Topic, and made Education Content a multiselect. None of these affect the IRR column list.
+- **Formative Feedback (template v0.0.2, updated 2026-09-14).** All 191 fields marked "Used for IRR? = Y" match the tool's list exactly, and all appear in the Coding sheet headers. `Feedback usage reported` and `Feedback usage numbers` have no IRR flag and are not in the list. `Metric{n}-evaluation results` has no IRR flag.
+- **Automated Scoring (template v1.5.0).** All 161 columns in the tool match the Coding Sheet headers exactly, including the `Metric{n}-baseline min difference` spelling used for metrics 2 to 10. The template has no "Used for IRR?" column, so the IRR set cannot be checked against a flag. It did not receive the v0.0.7 fairness renames, so `Fairness acknowledged` and `Bias / Fairness Evaluated` are correct as they are. This closes the earlier open item about stale AS field names.
+
+### Added
+- **Template version tracking.** Each domain definition now records its template version and last-updated date (AS 1.5.0 with no date recorded, IG 0.0.8 on 2026-07-15, FF 0.0.2 on 2026-09-14). The version cards, the auto-detect message and the results header display them.
+- **Two more Formative Feedback auto-detection columns.** `Feedback usage numbers` and `Feedback Content` were added to the Formative Feedback signature next to `Feedback usage reported`. All three exist only in the Formative Feedback template, and none appears in the current Item Generation or Automated Scoring templates. This confirms the earlier open question about the tiebreaker at the template level. Auto-detection was tested against the real headers of all three templates and returns the correct domain for each.
+
+### Fixed
+- **Multiselect fields were never compared order-independently.** The rule matched column names ending in "list", but every such column is free-text, so it never applied to anything. Two coders who chose the same options in a different order were scored as disagreeing. Order no longer matters for `AI Innovation`, `Prompting techniques`, `Bias / Fairness Type`, and each metric's `analysis type`, `category` and `truth`, which are the IRR-eligible fields marked Multiselection in the templates. `Education Content` is excluded on purpose, because it is single-select in Automated Scoring and one option (`Writing (Short Answer, Essays)`) contains a comma. Checked that no option in the affected fields contains a comma.
+
+### Known open items
+- The multiselect fix changes how some cells are scored and has not been compared against Aaron's hand-calculated figures. Results for sheets with several selections in one cell may differ slightly from earlier rounds.
+- `Metric{n}-Additional evaluation method notes` is still marked as used for IRR in the Formative Feedback template (v0.0.2) and is still treated as free text. Pending confirmation with Aaron.
+- The Automated Scoring IRR column set is inferred, since its template has no IRR flag. Pending confirmation with Aaron.
+- The Item Generation Feature descriptions tab still shows two older fairness field names (see above). The tool follows the Coding sheet headers.
+- The Formative Feedback auto-detection columns are confirmed against the templates only, not yet against a real Formative Feedback export.
+- Field lists spell the metric `ROGUE` in the Automated Scoring and Item Generation templates and `ROUGE` in Formative Feedback. No effect on a single-domain comparison.
+
+## 2026-10-01 — Main file renamed to index.html
 
 Renamed `irr_calculator.html` to `index.html` so the tool is served at the repository root when hosted (for example, on GitHub Pages). No code changes: the tool does not reference its own filename, and exported files (`irr_results.csv`, `irr_results.xlsx`) are named independently of it.
 
