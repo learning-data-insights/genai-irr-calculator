@@ -1393,7 +1393,7 @@ function isNumericCol(colName) {
 
 // Fields the coding sheet declares as multiselect (type row: "Multiselection").
 // Choices are compared order-independently, so "A, B" equals "B, A".
-const MULTISELECT_FIELD_PATTERN = /^(?:Metric\d+-(?:analysis type|category|truth)|AI Innovation|Bias \/ Fairness Type|Prompting techniques|Education Segment|Education Content|Training source|Testing source)$/i;
+const MULTISELECT_FIELD_PATTERN = /^(?:Metric\d+-(?:analysis type|category|truth)|AI Innovation|Bias \/ Fairness Type|Prompting techniques|Education Segment|Education Content|Feedback Content|Training source|Testing source)$/i;
 function isMultiselect(colName) {
   return (/list$/i.test(colName) || MULTISELECT_FIELD_PATTERN.test(colName.trim())) && !isFreeText(colName);
 }
@@ -2129,7 +2129,7 @@ document.addEventListener('mouseover', e => {
 
 <footer class="app-footer">
   <div class="footer-credit">
-    <strong>Created by Melanie Kurimchak</strong> in collaboration with Claude Sonnet 4.6 (Anthropic).<br>
+    <strong>Created by Melanie Kurimchak</strong> in collaboration with Claude Sonnet 5 (Anthropic).<br>
     Melanie conceived the tool, defined all requirements, tested functionality, and directed development through iterative feedback.
   </div>
   <div class="footer-divider"></div>
