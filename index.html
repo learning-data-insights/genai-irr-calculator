@@ -131,13 +131,6 @@
   .version-card.disabled .version-dot { background: var(--text-faint); }
   .version-name { font-size: 12px; font-weight: 600; }
   .version-sub { font-size: 10px; color: var(--text-faint); font-family: var(--mono); }
-  .version-badge {
-    margin-left: auto; font-family: var(--mono); font-size: 9px;
-    padding: 2px 7px; border-radius: 100px;
-    background: var(--surface3); color: var(--text-faint);
-    border: 1px solid var(--border);
-  }
-
   /* Detection banner */
   .detect-banner {
     margin-top: 10px; padding: 9px 12px;
@@ -146,6 +139,7 @@
     background: rgba(107,138,253,.1); border: 1px solid #6b8afd33; color: var(--accent);
   }
   .detect-banner.visible { display: flex; }
+  .detect-banner.warn { background: rgba(245,158,11,.1); border-color: #f59e0b44; color: var(--warn); }
 
   label.ctrl-label {
     display: block; font-size: 11px; color: var(--text-dim);
@@ -473,6 +467,11 @@
   .rq-sub-inner td { padding: 7px 14px 7px 48px !important; font-size: 10px; border-bottom: 1px solid rgba(46,53,79,.4); }
   .rq-sub-inner tr:last-child td { border-bottom: none; }
   .rq-sub-inner tbody tr:hover td { background: rgba(255,255,255,.01); }
+
+  .unit-row { display: none; background: var(--surface2); }
+  .unit-row.visible { display: table-row; }
+  .unit-row td { font-family: var(--mono); font-size: 11px; }
+  .unit-row td:first-child { padding-left: 36px !important; }
 </style>
 </head>
 <body>
@@ -511,7 +510,6 @@
             <div class="version-name">Automated Scoring</div>
             <div class="version-sub">Auto-selects IRR columns</div>
           </div>
-          <span class="version-badge">Active</span>
         </div>
         <div class="version-card" data-version="ig" id="card-ig">
           <div class="version-dot"></div>
@@ -519,7 +517,6 @@
             <div class="version-name">Item Generation</div>
             <div class="version-sub">Auto-selects IRR columns</div>
           </div>
-          <span class="version-badge">Active</span>
         </div>
         <div class="version-card" data-version="ff" id="card-ff">
           <div class="version-dot"></div>
@@ -527,18 +524,46 @@
             <div class="version-name">Formative Feedback</div>
             <div class="version-sub">Auto-selects IRR columns</div>
           </div>
-          <span class="version-badge">Active</span>
+        </div>
+        <div class="version-card" data-version="custom" id="card-custom">
+          <div class="version-dot"></div>
+          <div>
+            <div class="version-name">Other / Custom</div>
+            <div class="version-sub">Choose your own IRR columns</div>
+          </div>
         </div>
       </div>
       <div class="detect-banner" id="detectBanner">
         <span>🔍</span>
         <span id="detectMsg"></span>
       </div>
+      <div class="detect-banner warn" id="reqBanner">
+        <span>⚠</span>
+        <span id="reqMsg"></span>
+      </div>
     </div>
 
     <!-- 03 Configure Columns -->
     <div class="sidebar-section" id="colSection" style="display:none;">
       <div class="section-label">03 — Configure Columns</div>
+      <div class="detect-banner" id="customNote" style="margin-top:0;margin-bottom:10px;">
+        <span>⚑</span>
+        <span>Custom: choose the unit and coder columns, then choose which columns count toward IRR. No columns are preselected.</span>
+      </div>
+      <div id="mapRow" style="display:none;">
+        <div class="ctrl-row">
+          <label class="ctrl-label" for="unitSelect">Unit column
+            <span style="color:var(--text-faint)"> — what is being coded</span>
+          </label>
+          <select id="unitSelect"></select>
+        </div>
+        <div class="ctrl-row">
+          <label class="ctrl-label" for="coderSelect">Coder column
+            <span style="color:var(--text-faint)"> — who coded it</span>
+          </label>
+          <select id="coderSelect"></select>
+        </div>
+      </div>
 
       <div class="ctrl-row">
         <label class="ctrl-label">IRR columns
@@ -575,7 +600,7 @@
     <div class="empty-state" id="emptyState">
       <div class="empty-icon">📊</div>
       <h2>No results yet</h2>
-      <p>Upload a coding sheet, select the sheet version, configure columns and metrics, then click <strong>Calculate IRR</strong>.</p>
+      <p>Upload a coding sheet, select the sheet version, configure columns, then click <strong>Calculate IRR</strong>.</p>
     </div>
     <div id="resultsArea" class="hidden"></div>
   </main>
@@ -915,6 +940,14 @@ const SHEET_VERSIONS = {
       'Metric10-max baseline significant',
       'Metric10-Additional evaluation method notes'
     ]
+  },
+  // "Other / Custom": no signature (never auto-detected) and no column list (nothing is
+  // preselected). Used for sheets that are not one of the built-in domains; the user
+  // chooses the IRR columns by hand.
+  custom: {
+    name: 'Custom',
+    signature: [],
+    cols: []
   }
 };
 
@@ -925,7 +958,7 @@ let rawData = [];
 let allColumns = [];
 let selectedCols = new Set();
 let lastResults = null;
-let activeVersion = null; // 'as' | 'ig' | 'ff' | null
+let activeVersion = null; // 'as' | 'ig' | 'ff' | 'custom' | null
 
 // ═══════════════════════════════════════════
 // FILE LOADING
@@ -985,12 +1018,14 @@ function loadData(data, filename) {
   prev.innerHTML = `<strong>${data.length}</strong> rows · <strong>${allColumns.length}</strong> columns detected`;
 
   // Auto-detect version
+  // A sheet that matches none of the built-in domains falls back to "Custom" (no columns
+  // preselected) instead of silently borrowing another domain's column list.
   const detected = detectVersion(allColumns);
-  activeVersion = detected;
+  activeVersion = detected || 'custom';
 
   document.getElementById('versionSection').style.display = '';
-  renderVersionCards(detected);
-  applyVersionAndRebuild(detected || 'as');
+  renderVersionCards(activeVersion, !detected);
+  applyVersionAndRebuild(activeVersion);
 
   document.getElementById('coderSection').style.display = '';
   document.getElementById('runSection').style.display = '';
@@ -1020,8 +1055,8 @@ function detectVersion(cols) {
   return best;
 }
 
-function renderVersionCards(detectedKey) {
-  ['as','ig','ff'].forEach(k => {
+function renderVersionCards(detectedKey, notRecognized) {
+  ['as','ig','ff','custom'].forEach(k => {
     const card = document.getElementById(`card-${k}`);
     card.classList.remove('active');
     card.onclick = () => {
@@ -1037,14 +1072,84 @@ function renderVersionCards(detectedKey) {
     const banner = document.getElementById('detectBanner');
     const msg = document.getElementById('detectMsg');
     banner.classList.add('visible');
-    msg.textContent = `Auto-detected as "${SHEET_VERSIONS[detectedKey].name}" — verify or change above.`;
+    msg.textContent = notRecognized
+      ? 'Not recognized as one of the built-in domains, so "Other / Custom" is selected.'
+      : `Auto-detected as "${SHEET_VERSIONS[detectedKey].name}" — verify or change above.`;
   } else if (!detectedKey) {
     document.getElementById('detectBanner').classList.remove('visible');
   }
 }
 
+function showRequiredColumnsWarning() {
+  const banner = document.getElementById('reqBanner');
+  let msg = '';
+  if (activeVersion === 'custom') {
+    const needed = [];
+    if (!selUnitCol) needed.push('the unit column');
+    if (!selCoderCol) needed.push('the coder column');
+    if (needed.length) msg = `Choose ${needed.join(' and ')} below before calculating.`;
+  } else {
+    const missing = [FIXED_PAPER_COL, FIXED_CODER_COL].filter(c => !allColumns.includes(c));
+    if (missing.length) {
+      msg = `Required column${missing.length > 1 ? 's' : ''} not found: ${missing.map(c => '"' + c + '"').join(', ')}. ` +
+            `The built-in domains need "${FIXED_PAPER_COL}" to identify each coded unit and "${FIXED_CODER_COL}" to identify each coder. ` +
+            `Choose "Other / Custom" to pick different columns.`;
+    }
+  }
+  if (!msg) { banner.classList.remove('visible'); return; }
+  document.getElementById('reqMsg').textContent = msg;
+  banner.classList.add('visible');
+}
+
+// Custom mode: start from the standard header names when present, otherwise guess from the
+// column names. The user can change both choices.
+function guessUnitAndCoderColumns() {
+  const find = re => allColumns.find(c => re.test(c.trim())) || '';
+  selUnitCol = allColumns.includes(FIXED_PAPER_COL) ? FIXED_PAPER_COL
+    : find(/^(research question|rq|question|item|unit|study|paper|record|case|document)\b.*\b(id|number|no\.?)$|^(id|unit|item|rq)$/i);
+  selCoderCol = allColumns.includes(FIXED_CODER_COL) ? FIXED_CODER_COL
+    : find(/\b(reviewer|coder|rater|annotator|judge|scorer)\b/i);
+  if (selUnitCol && selUnitCol === selCoderCol) selUnitCol = '';
+}
+
+function buildMappingSelectors() {
+  [['unitSelect', selUnitCol], ['coderSelect', selCoderCol]].forEach(([id, value]) => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    const blank = document.createElement('option');
+    blank.value = ''; blank.textContent = 'Choose a column';
+    sel.appendChild(blank);
+    allColumns.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    });
+    sel.value = value;
+  });
+}
+
+function onMappingChange() {
+  selUnitCol = document.getElementById('unitSelect').value;
+  selCoderCol = document.getElementById('coderSelect').value;
+  // Rebuild the column list without losing the user's column choices
+  const prev = new Set(selectedCols);
+  buildColPicker('custom');
+  document.querySelectorAll('.col-check').forEach(cb => {
+    if (prev.has(cb.dataset.col) && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+  });
+  buildCoderList();
+  showRequiredColumnsWarning();
+}
+['unitSelect', 'coderSelect'].forEach(id => document.getElementById(id).addEventListener('change', onMappingChange));
+
 function applyVersionAndRebuild(versionKey) {
+  const custom = versionKey === 'custom';
+  document.getElementById('customNote').classList.toggle('visible', custom);
+  document.getElementById('mapRow').style.display = custom ? '' : 'none';
+  if (custom) { guessUnitAndCoderColumns(); buildMappingSelectors(); }
+  else { selUnitCol = FIXED_PAPER_COL; selCoderCol = FIXED_CODER_COL; }
   buildColumnSelectors(versionKey);
+  showRequiredColumnsWarning();
   document.getElementById('colSection').style.display = '';
 }
 
@@ -1053,6 +1158,10 @@ function applyVersionAndRebuild(versionKey) {
 // ═══════════════════════════════════════════
 const FIXED_PAPER_COL = 'Research Question ID';
 const FIXED_CODER_COL = 'Reviewer';
+// The columns currently used as the coded unit and the coder. The built-in domains always use
+// the two fixed headers above; in Custom mode the user can choose any columns.
+let selUnitCol = FIXED_PAPER_COL;
+let selCoderCol = FIXED_CODER_COL;
 const EXCLUDED_CODERS = new Set(['string']); // lowercase for case-insensitive match
 
 function buildColumnSelectors(versionKey) {
@@ -1072,9 +1181,9 @@ function buildColumnSelectors(versionKey) {
 }
 
 function buildColPicker(versionKey) {
-  const paperCol = FIXED_PAPER_COL;
-  const coderCol = FIXED_CODER_COL;
-  const exclude = new Set([paperCol, coderCol]);
+  const paperCol = selUnitCol;
+  const coderCol = selCoderCol;
+  const exclude = new Set([paperCol, coderCol].filter(Boolean));
 
   // Determine which cols to pre-select (whitespace/case-tolerant, see normColName)
   const versionCols = versionKey && SHEET_VERSIONS[versionKey]
@@ -1160,7 +1269,7 @@ function buildCoderList() {
 
   const coders = [...new Set(
     rawData
-      .map(r => String(r[FIXED_CODER_COL] ?? '').trim())
+      .map(r => String(r[selCoderCol] ?? '').trim())
       .filter(v => v && !EXCLUDED_CODERS.has(v.toLowerCase()))
   )];
 
@@ -1188,11 +1297,12 @@ function esc(s) { return String(s).replace(/"/g,'&quot;'); }
 // RUN
 // ═══════════════════════════════════════════
 document.getElementById('runBtn').addEventListener('click', () => {
-  const paperCol = FIXED_PAPER_COL;
-  const coderCol = FIXED_CODER_COL;
+  const paperCol = selUnitCol;
+  const coderCol = selCoderCol;
   const cols = [...selectedCols];
 
   const errors = [];
+  if (!paperCol || !coderCol) errors.push('Please choose the unit column and the coder column.');
   if (cols.length === 0) errors.push('Please select at least one coding column.');
   if (errors.length) { showResults(null, errors); return; }
 
@@ -1315,6 +1425,27 @@ document.getElementById('runBtn').addEventListener('click', () => {
     });
   });
 
+  // ── Pair × unit alpha ──
+  // Used when there is no paper level: Other / Custom, or a built-in sheet without a Paper ID.
+  // Each coded unit (research question ID, or the user's chosen unit column) gets its own alpha for
+  // the pair, over the selected columns. Only units where both coders have overlapping fields appear.
+  const drillMode = (activeVersion !== 'custom' && paperNums.length > 0) ? 'paper' : 'unit';
+  const pairUnitResults = {};
+  if (drillMode === 'unit') {
+    const byUnit = new Map();
+    allRecords.forEach(r => { if (!byUnit.has(r.rq)) byUnit.set(r.rq, []); byUnit.get(r.rq).push(r); });
+    activePairs.forEach(([c1,c2]) => {
+      const key = pk(c1,c2);
+      pairUnitResults[key] = {};
+      byUnit.forEach((recs, unitId) => {
+        const pr = recs.filter(r => r.coder===c1 || r.coder===c2);
+        const c1fields = new Set(pr.filter(r => r.coder===c1).map(r => `${r.paper}\x00${r.field}`));
+        const bothPresent = pr.some(r => r.coder===c2 && c1fields.has(`${r.paper}\x00${r.field}`));
+        if (bothPresent) pairUnitResults[key][unitId] = krippendorffAlpha(pr);
+      });
+    });
+  }
+
   lastResults = {
     overallAlpha, pairs: activePairs,
     pairResults,
@@ -1323,7 +1454,10 @@ document.getElementById('runBtn').addEventListener('click', () => {
     paperNums, paperNumToRQs, paperGroupTitle, paperGroupTitleFull,
     rqLabelMap, rqLabelFull,
     cols, papers, coders,
-    allRecords, freetextSelected
+    allRecords, freetextSelected,
+    // 'paper': pair > paper > RQ (built-in domains with a Paper ID column)
+    // 'unit':  pair > unit (Other / Custom, or a built-in sheet without a Paper ID)
+    drillMode, pairUnitResults
   };
   showResults(lastResults, []);
 });
@@ -1436,8 +1570,11 @@ function buildRecords(rawData, paperCol, coderCol, cols, allowedCoders) {
 
   rawData.forEach(row => {
     const rqId = String(row[paperCol] ?? '').trim();
-    if (!rqId || /^\d+$/.test(rqId)) return; // bare integer artifacts
-    if (rqId.toLowerCase() === ARTIFACT_ROW) return;
+    // Template artifacts (bare whole numbers and the "numerical (index identifier)" type row) are
+    // skipped for the built-in domains only. A custom unit column may legitimately hold plain numbers.
+    const builtIn = activeVersion !== 'custom';
+    if (!rqId || (builtIn && /^\d+$/.test(rqId))) return;
+    if (builtIn && rqId.toLowerCase() === ARTIFACT_ROW) return;
 
     const coder = String(row[coderCol] ?? '').trim();
     if (!coder || EXCLUDED_CODERS.has(coder.toLowerCase())) return;
@@ -1803,11 +1940,17 @@ function showResults(res, errors) {
          paperNums, paperNumToRQs, paperGroupTitle, paperGroupTitleFull,
          rqLabelMap, rqLabelFull,
          cols, papers, coders,
-         allRecords, freetextSelected} = res;
+         allRecords, freetextSelected, drillMode, pairUnitResults} = res;
 
   if (freetextSelected && freetextSelected.length > 0) {
     area.innerHTML += banner('warn','⚠',
       `<strong>${freetextSelected.length} free-text field${freetextSelected.length>1?'s':''} included:</strong> ${freetextSelected.join(', ')}. These use exact-string matching and may deflate IRR.`
+    );
+  }
+
+  if (activeVersion === 'custom') {
+    area.innerHTML += banner('warn','⚑',
+      `<strong>Custom column selection:</strong> these columns were chosen manually. Rules tied to this project's field names (free-text exclusions, numeric and multiselect handling, metric realignment) apply only where field names match, and the quantitative metric rule does not apply.`
     );
   }
 
@@ -1820,7 +1963,7 @@ function showResults(res, errors) {
   hdr.innerHTML = `
     <div>
       <div class="results-title">IRR Results <span class="info-tooltip">ℹ<span class="tooltip-body"><strong>Methodology note</strong><br>Krippendorff's α is computed by recoding every (Paper, RQ, Field) unit so each unit gets codes unique to itself (matches share a code, mismatches get distinct codes, and no code is reused across units). This matches the statistical lead's hand/R method. Metric fields are realigned by content before comparison, not by position (for research questions coded by two coders), and a metric with no counterpart on the other side counts as a full disagreement. Blank, N/A, and other missing-value entries count as the same answer. Two coders with nothing there agree (a metric neither coder used is left out), and nothing against a real value is a disagreement. For Item Generation and Formative Feedback, if one coder reports a metric quantitatively (a value in min or max) and the other does not, blank against N/A in the metric's value fields (all fields except the ones that identify the metric) counts as a disagreement. <strong>Overall is the simple average of the per-pair α figures below.</strong> Numeric values are normalized (85 equals 85.0), and in min, max, and difference fields a percentage equals the same decimal (3.89 and 0.0389). Multiselect cells are compared regardless of order. Free-text fields may deflate α if included.</span></span></div>
-      <div class="results-meta">${vName ? vName+' · ' : ''}${papers.length} RQs · ${cols.length} variables · ${coders.length} coders · ${ts}</div>
+      <div class="results-meta">${vName ? vName+' · ' : ''}${papers.length} ${activeVersion === 'custom' ? 'units' : 'RQs'} · ${cols.length} variables · ${coders.length} coders · ${ts}</div>
     </div>
     <div class="export-btns">
       <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
@@ -1873,7 +2016,7 @@ function showResults(res, errors) {
   let th = `<div class="section-header">
     Coder Pair IRR
     <span class="pill">${pairs.length} pairs</span>
-    <span class="pill" style="color:var(--accent);border-color:rgba(107,138,253,.3)">▶ click pair for paper detail · click paper for RQ detail</span>
+    <span class="pill" style="color:var(--accent);border-color:rgba(107,138,253,.3)">▶ ${drillMode === 'unit' ? 'click pair for unit detail' : 'click pair for paper detail · click paper for RQ detail'}</span>
   </div>
   <div class="rq-table-wrap"><table>
   <thead><tr><th>Coder Pair</th><th>Krippendorff\'s α</th></tr></thead><tbody>`;
@@ -1884,10 +2027,22 @@ function showResults(res, errors) {
     const pairRowId = `pair-expand-${pi}`;
 
     // Pair row
-    th += `<tr class="pair-row" data-target="${pairRowId}">
+    th += `<tr class="pair-row" data-target="${pairRowId}"${drillMode === 'unit' ? ` data-group="units-${pi}"` : ''}>
       <td style="font-family:var(--mono);font-weight:600;">${key}</td>
       <td>${fmtVal(v, false)}</td>
     </tr>`;
+
+    // No paper level: the units for this pair are rows of the same table, shown when the pair is opened
+    if (drillMode === 'unit') {
+      Object.keys(pairUnitResults[key] || {}).sort((x,y) => x.localeCompare(y, undefined, {numeric: true})).forEach(uid => {
+        const label = rqLabelMap[uid] || '';
+        th += `<tr class="unit-row" data-group="units-${pi}">
+          <td title="${rqLabelFull[uid] || uid}">${uid}${label ? `<span class="paper-index">${label}</span>` : ''}</td>
+          <td>${fmtVal(pairUnitResults[key][uid], false)}</td>
+        </tr>`;
+      });
+      return;
+    }
 
     // Expandable paper sub-table
     let paperRows = '';
@@ -1945,6 +2100,16 @@ function showResults(res, errors) {
   // Wire up pair accordion
   tb.querySelectorAll('.pair-row').forEach(row => {
     row.addEventListener('click', () => {
+      if (row.dataset.group) {
+        const wasOpen = row.classList.contains('expanded');
+        tb.querySelectorAll('.unit-row.visible').forEach(r => r.classList.remove('visible'));
+        tb.querySelectorAll('.pair-row.expanded').forEach(r => r.classList.remove('expanded'));
+        if (!wasOpen) {
+          tb.querySelectorAll(`.unit-row[data-group="${row.dataset.group}"]`).forEach(r => r.classList.add('visible'));
+          row.classList.add('expanded');
+        }
+        return;
+      }
       const target = document.getElementById(row.dataset.target);
       const isOpen = target.classList.contains('visible');
       tb.querySelectorAll('.pair-expand-row.visible').forEach(r => r.classList.remove('visible'));
@@ -2003,6 +2168,7 @@ function exportCSV() {
   });
   lines.push('');
 
+  if (lastResults.drillMode === 'paper') {
   lines.push(['CODER PAIR DETAIL', 'Paper / RQ', "Krippendorff's α"].join(','));
   pairs.forEach(([c1,c2]) => {
     const key = pk(c1,c2);
@@ -2019,8 +2185,21 @@ function exportCSV() {
     });
     lines.push('');
   });
+  } else {
+  lines.push(['CODER PAIR DETAIL', 'Unit', "Krippendorff's α"].join(','));
+  pairs.forEach(([c1,c2]) => {
+    const key = pk(c1,c2);
+    lines.push([key, '', fmt(pairResults[key])].join(','));
+    Object.keys(lastResults.pairUnitResults[key] || {}).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(uid => {
+      const label = rqLabelFull[uid] ? `: ${rqLabelFull[uid]}` : '';
+      lines.push(['', JSON.stringify(`${uid}${label}`), fmt(lastResults.pairUnitResults[key][uid])].join(','));
+    });
+    lines.push('');
+  });
+  }
 
-  dlBlob(new Blob([lines.join('\n')],{type:'text/csv'}), 'irr_results.csv');
+  // The leading byte-order mark tells Excel the file is UTF-8, so × and α display correctly.
+  dlBlob(new Blob(['\uFEFF' + lines.join('\n')],{type:'text/csv;charset=utf-8'}), 'irr_results.csv');
 }
 
 function exportXLSX() {
@@ -2050,6 +2229,7 @@ function exportXLSX() {
   wsData.push([]);
 
   // ── DETAIL: pair > paper > RQ ──
+  if (lastResults.drillMode === 'paper') {
   wsData.push(['CODER PAIR DETAIL', 'Paper / RQ', "Krippendorff's α"]);
   pairs.forEach(([c1,c2]) => {
     const key = pk(c1,c2);
@@ -2066,6 +2246,18 @@ function exportXLSX() {
     });
     wsData.push([]);
   });
+  } else {
+  wsData.push(['CODER PAIR DETAIL', 'Unit', "Krippendorff's α"]);
+  pairs.forEach(([c1,c2]) => {
+    const key = pk(c1,c2);
+    wsData.push([key, '', fmt(pairResults[key])]);
+    Object.keys(lastResults.pairUnitResults[key] || {}).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(uid => {
+      const label = rqLabelFull[uid] ? `: ${rqLabelFull[uid]}` : '';
+      wsData.push(['', `${uid}${label}`, fmt(lastResults.pairUnitResults[key][uid])]);
+    });
+    wsData.push([]);
+  });
+  }
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols'] = [{ wch: 28 }, { wch: 60 }, { wch: 16 }];

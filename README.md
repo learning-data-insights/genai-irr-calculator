@@ -1,24 +1,26 @@
 # IRR Calculator
 
-A browser-based Inter-Rater Reliability calculator for the GenAI Evidence Hub systematic literature review. Upload a coding sheet, pick your columns, and get Krippendorff's α — overall, by coder pair, and drilled down to individual papers and research questions. Single self-contained HTML file, no install, all computation happens client-side.
+A browser-based Inter-Rater Reliability calculator for the GenAI Evidence Hub systematic literature review. Upload a coding sheet, pick your columns, and get Krippendorff's α, overall, by coder pair, and drilled down to individual papers and research questions (or to individual units for sheets without a paper level). Built-in column sets cover the project's three coding domains, and an **Other / Custom** option handles any other coding sheet. Single self-contained HTML file, no install, all computation happens client-side.
 
 ## Getting Started
 
-Open `index.html` in any browser. Upload a coding sheet (`.csv`, `.xlsx`, `.xls`, `.tsv`, or `.txt`), confirm the auto-detected sheet version, choose which columns to include, and click **Calculate IRR**.
+Open `index.html` in any browser. Upload a coding sheet (`.csv`, `.xlsx`, `.xls`, `.tsv`, or `.txt`), confirm the auto-detected sheet version (or choose **Other / Custom** for a sheet that is not one of the built-in domains), choose which columns to include, and click **Calculate IRR**.
 
 ## File Requirements
 
 - One row per coder per research question.
-- `Research Question ID` identifies the unit being coded (hard-coded as the paper/RQ key).
-- `Reviewer` identifies the coder (hard-coded as the coder key).
-- `Paper ID` groups research questions under their source paper, for the paper-level drill-down.
+- `Research Question ID` identifies the unit being coded and `Reviewer` identifies the coder. The built-in domains require these two headers. With **Other / Custom**, you choose which columns are the unit and the coder.
+- `Paper ID` is optional. It groups research questions under their source paper, for the paper-level drill-down.
+
+If either header is missing from a sheet in a built-in domain, the tool shows a warning and points to **Other / Custom**.
 
 ## Features
 
-- **Auto-detection** of coding sheet version (Automated Scoring / Item Generation / Formative Feedback) from signature columns, with manual override. Column-name matching is whitespace/case-tolerant, so stray spaces in real export headers don't cause a column to be silently missed.
+- **Auto-detection** of coding sheet version (Automated Scoring / Item Generation / Formative Feedback) from signature columns, with manual override. Each built-in version preselects its own IRR columns.
+- **Other / Custom** for sheets that are not one of the built-in domains. No columns are preselected, so the user chooses which columns count toward IRR. The user also chooses which columns are the unit and the coder (the tool suggests columns from common header names). A sheet that matches none of the built-in domains selects this option automatically. Plain whole-number unit IDs are accepted here, whereas the built-in domains skip them as template artifacts. Rules tied to this project's field names (free-text exclusions, numeric and multiselect handling, metric realignment) apply only where field names match, and the qualitative-vs-quantitative metric rule does not apply. Column-name matching is whitespace/case-tolerant, so stray spaces in real export headers don't cause a column to be silently missed.
 - **Column picker** with free-text fields flagged and excluded from the default selection.
 - **Coder filter** to restrict calculation to a subset of coders.
-- **Results at three levels**: overall, by coder pair, and an expandable pair → paper → RQ accordion.
+- **Results at three levels**: overall, by coder pair, and an expandable pair → paper → RQ accordion. The accordion is available for the built-in domains when the sheet has a `Paper ID` column. For Other / Custom, and for a built-in sheet without `Paper ID`, each pair expands to the alpha for each unit instead, which shows which units pull a pair's alpha down.
 - **Export** to CSV or formatted Excel.
 
 ## Methodology
