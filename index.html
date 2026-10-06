@@ -585,17 +585,6 @@
 const SHEET_VERSIONS = {
   as: {
     name: 'Automated Scoring',
-    // Template version, shown in the version card and results header. The AS
-    // workbook has no version stamp on its definitions tab; 1.5.0 is the latest
-    // entry in its "Coding sheet history" log and carries no date. Its definitions
-    // tab ("Data Def - AW version") also has no "Used for IRR?" column, so this
-    // column list is checked against the Coding Sheet headers and against the IRR
-    // rule used by the other two domains, not against an explicit IRR flag.
-    // Checked 2026-10-01: all 161 columns below match the Coding Sheet headers
-    // exactly, and the AS template still uses the pre-v0.0.7 fairness names
-    // ("Fairness acknowledged", "Bias / Fairness Evaluated"), so no rename applies.
-    templateVersion: '1.5.0',
-    templateDate: null,
     // signature columns used to auto-detect this sheet
     signature: ['Metric1-type', 'Metric1-truth', 'Bias / Fairness Evaluated'],
     cols: [
@@ -646,23 +635,12 @@ const SHEET_VERSIONS = {
   },
   ig: {
     name: 'Item Generation',
-    // Template v0.0.8 (last updated 2026-07-15). Checked 2026-10-01 against the
-    // Feature descriptions tab ("Used for IRR?" column), the Coding sheet headers
-    // and the version log. This list contains every IRR-flagged field that exists
-    // in the Coding sheet (179 of the 181 flagged; the other 2 are covered below),
-    // plus the per-metric evaluation results and additional notes columns, which
-    // are flagged N and kept here so they show in the picker as free-text.
-    // v0.0.7 names are in use: "Fairness acknowledged" -> "Bias/Fairness
-    // acknowledged", "Bias / Fairness Evaluated" -> "Bias / Fairness Type". The
-    // template's Feature descriptions tab still lists older names for those two
-    // fields ("Fairness acknowledged", "Bias / Equity Evaluated"); the Coding sheet
-    // headers, which real exports follow, use the v0.0.7 names, so those are used.
-    // v0.0.8 renamed "Bias / Fairness conclusion" to "Bias / Fairness addressed"
-    // (IRR = N, so not in this list). Column matching elsewhere in the tool is
-    // whitespace-tolerant, so header-only quirks (e.g. a trailing space on
-    // "Domain ") don't require a version bump here.
-    templateVersion: '0.0.8',
-    templateDate: '2026-07-15',
+    // v0.0.7 field names (confirmed against coding_spreadsheet_template__AIG
+    // Feature Descriptions, "Used for IRR?" column, cross-checked against the
+    // v0.0.7 rename log): "Fairness acknowledged" -> "Bias/Fairness acknowledged",
+    // "Bias / Fairness Evaluated" -> "Bias / Fairness Type". Column matching
+    // elsewhere in the tool is whitespace-tolerant, so header-only quirks
+    // (e.g. a trailing space on "Domain") don't require a version bump here.
     signature: ['Metric1-analysis type','Metric1-category','Bias / Fairness Type'],
     cols: [
       'Domain','AI Innovation','Bias/Fairness acknowledged','Bias / Fairness Type',
@@ -722,27 +700,25 @@ const SHEET_VERSIONS = {
   },
   ff: {
     name: 'Formative Feedback',
-    // Template v0.0.2 (last updated 2026-09-14). Checked 2026-10-01: the 191
-    // fields flagged "Used for IRR? = Y" on the Feature descriptions tab match
-    // this list exactly, and every one appears in the Coding sheet headers.
-    // v0.0.7 names are used ("Bias/Fairness acknowledged", "Bias / Fairness Type").
-    // Unlike Item Generation, this template marks "Metric{n}-Additional evaluation
-    // method notes" as used for IRR (still Y in v0.0.2). The tool still treats it
-    // as free text (paraphrase-prone narrative, same reasoning as the other
-    // excluded description fields), so it shows in the picker unchecked. Worth
-    // confirming with Aaron rather than silently deciding either way.
-    // "Metric{n}-evaluation results" has no IRR flag in this template.
-    // Auto-detection: 'Metric1-analysis type' / 'Metric1-category' /
-    // 'Bias / Fairness Type' are shared verbatim with Item Generation's signature,
-    // so on their own they can never win a tie against IG (detectVersion keeps the
-    // first equal-scoring match, and 'ig' is declared first). The last three
-    // columns below exist only in the FF template: 'Feedback usage reported' and
-    // 'Feedback usage numbers' (Research Question Design) and 'Feedback Content'
-    // (Study Design; Item Generation has 'Education Content' there instead).
-    // Confirmed 2026-10-01 against the current IG and AS templates.
-    templateVersion: '0.0.2',
-    templateDate: '2026-09-14',
-    signature: ['Metric1-analysis type','Metric1-category','Bias / Fairness Type','Feedback usage reported','Feedback usage numbers','Feedback Content'],
+    // v0.0.7 field names, confirmed against coding_spreadsheet_template__FF
+    // Feature Descriptions ("Used for IRR?" column), with the same
+    // "Fairness acknowledged" -> "Bias/Fairness acknowledged" and
+    // "Bias / Fairness Evaluated" -> "Bias / Fairness Type" renames applied
+    // as Item Generation (shared fairness/bias infrastructure, same v0.0.7
+    // rename log). Note: unlike Item Generation, this domain's template
+    // marks "Metric{n}-Additional evaluation method notes" as used for IRR
+    // -- it's still treated as free text here (paraphrase-prone narrative,
+    // same reasoning as the other excluded description fields), which is
+    // worth flagging back to Aaron rather than silently deciding either way.
+    // NOTE: 'Metric1-analysis type' / 'Metric1-category' / 'Bias / Fairness Type'
+    // are shared verbatim with Item Generation's signature, so on their own they
+    // can never win a tie against IG (detectVersion keeps the first equal-scoring
+    // match, and 'ig' is declared first). 'Feedback usage reported' is added here
+    // as an FF-only tiebreaker column (from the FF Feature Descriptions doc,
+    // Research Question Design section) — unconfirmed whether this column name
+    // is guaranteed absent from real IG/AS exports, so double-check this still
+    // auto-detects correctly the next time an actual FF sheet is uploaded.
+    signature: ['Metric1-analysis type','Metric1-category','Bias / Fairness Type','Feedback usage reported'],
     cols: [
       'Domain',
       'AI Innovation',
@@ -1041,18 +1017,10 @@ function detectVersion(cols) {
   return best;
 }
 
-// "Template v0.0.8 · 2026-07-15" (date omitted when the template doesn't record one)
-function templateLabel(def) {
-  if (!def.templateVersion) return '';
-  return `Template v${def.templateVersion}` + (def.templateDate ? ` · ${def.templateDate}` : '');
-}
-
 function renderVersionCards(detectedKey) {
   ['as','ig','ff'].forEach(k => {
     const card = document.getElementById(`card-${k}`);
     card.classList.remove('active');
-    const sub = card.querySelector('.version-sub');
-    if (sub) sub.textContent = templateLabel(SHEET_VERSIONS[k]) || 'Auto-selects IRR columns';
     card.onclick = () => {
       activeVersion = k;
       renderVersionCards(null);
@@ -1066,8 +1034,7 @@ function renderVersionCards(detectedKey) {
     const banner = document.getElementById('detectBanner');
     const msg = document.getElementById('detectMsg');
     banner.classList.add('visible');
-    const lbl = templateLabel(SHEET_VERSIONS[detectedKey]);
-    msg.textContent = `Auto-detected as "${SHEET_VERSIONS[detectedKey].name}"${lbl ? ' (' + lbl.toLowerCase() + ')' : ''} — verify or change above.`;
+    msg.textContent = `Auto-detected as "${SHEET_VERSIONS[detectedKey].name}" — verify or change above.`;
   } else if (!detectedKey) {
     document.getElementById('detectBanner').classList.remove('visible');
   }
@@ -1412,28 +1379,11 @@ function isNumericCol(colName) {
   return /\b(number|total|count|min|max|baseline value|baseline difference)\b/i.test(colName);
 }
 
-// Multiselect (dropdown allows several choices) fields that can be selected for
-// IRR, taken from the "Selection / Multiselection" row of the AS, IG and FF coding
-// sheets (checked 2026-10-01): AI Innovation, Prompting techniques and
-// Bias / Fairness Type wherever they appear, plus Metric{n}-analysis type,
-// -category and -truth. (-truth is multiselect in Formative Feedback only; none of
-// the Item Generation or Automated Scoring truth options contains a comma, so
-// treating it the same way for every version is safe.) Cells hold the chosen
-// options joined by commas, so the order a coder clicked them in is not
-// meaningful. This replaces an earlier rule that matched column names ending in
-// "list", which only ever hit free-text columns and so never applied to anything.
-// Education Content is deliberately not here: it is single-select in Automated
-// Scoring and one of its options ("Writing (Short Answer, Essays)") contains a comma.
-const MULTISELECT_FIELDS = new Set([
-  'ai innovation',
-  'prompting techniques',
-  'bias / fairness type',
-]);
-const MULTISELECT_METRIC_PATTERN = /^metric\d+-(analysis type|category|truth)$/i;
-
+// Fields the coding sheet declares as multiselect (type row: "Multiselection").
+// Choices are compared order-independently, so "A, B" equals "B, A".
+const MULTISELECT_FIELD_PATTERN = /^(?:Metric\d+-(?:analysis type|category|truth)|AI Innovation|Bias \/ Fairness Type|Prompting techniques|Education Segment|Education Content|Training source|Testing source)$/i;
 function isMultiselect(colName) {
-  const c = colName.trim().toLowerCase().replace(/\s+/g, ' ');
-  return !isFreeText(colName) && (MULTISELECT_FIELDS.has(c) || MULTISELECT_METRIC_PATTERN.test(c));
+  return (/list$/i.test(colName) || MULTISELECT_FIELD_PATTERN.test(colName.trim())) && !isFreeText(colName);
 }
 
 function normalizeValue(raw, colName) {
@@ -1488,7 +1438,9 @@ function buildRecords(rawData, paperCol, coderCol, cols, allowedCoders) {
     cols.forEach(col => {
       const raw = row[col];
       const value = normalizeValue(raw, col);
-      records.push({ paper: paperId, rq: rqId, field: col, coder, value: value === null ? MISSING_SENTINEL : value });
+      const rawStr = (raw === null || raw === undefined) ? '' : String(raw).trim();
+      const kind = value === null ? (rawStr === '' ? 'blank' : 'na') : null;
+      records.push({ paper: paperId, rq: rqId, field: col, coder, value: value === null ? MISSING_SENTINEL : value, kind });
     });
   });
 
@@ -1520,6 +1472,15 @@ const METRIC_FIELD_PATTERN = /^Metric(\d+)-(.+)$/;
 const METRIC_IDENTITY_SUFFIXES = ['analysis type', 'category', 'type', 'assessment tool', 'truth'];
 const NO_COUNTERPART = '\x00NO_COUNTERPART\x00';   // forced-mismatch marker for an unmatched metric
 const BUCKET_MISSING = '\x00BUCKET_MISSING\x00';   // "nothing here" bucket, within a matched metric
+// Qualitative vs quantitative (Item Generation and Formative Feedback only).
+// A metric counts as quantitative when the coder entered a real value in its
+// min or max field. Two sections can still be the same metric when one coder
+// reports it quantitatively and the other does not, but then every VALUE field
+// (everything except the five identity fields) is a disagreement. Per Aaron.
+// Implemented as: in such a pair, a blank against an N/A in a value field is a disagreement
+// (MIXED_MODE 'A'). Scoring every value field as a disagreement ('B') overshot Aaron's
+// 9/2 figures by up to 0.03; 'A' stays within 0.011 of them on the fields the tool scores.
+const MIXED_MODE = 'A';
 
 function realignMetricRecords(records) {
   const metricRecords = [];
@@ -1547,13 +1508,20 @@ function realignMetricRecords(records) {
 
     // metricNum -> suffix -> value, per coder
     const byCoderMetric = { [c1]: new Map(), [c2]: new Map() };
+    const missKinds = new Map(); // coder|num|suffix -> 'blank' | 'na' (for missing cells)
     recs.forEach(r => {
       const m = r.field.match(METRIC_FIELD_PATTERN);
       const num = m[1], suffix = m[2];
       const cm = byCoderMetric[r.coder];
       if (!cm.has(num)) cm.set(num, new Map());
       cm.get(num).set(suffix, r.value);
+      if (r.kind) missKinds.set(`${r.coder}\x00${num}\x00${suffix}`, r.kind);
     });
+    const quantRuleOn = (typeof activeVersion !== 'undefined') && (activeVersion === 'ig' || activeVersion === 'ff');
+    const isQuant = (coder, num) => {
+      const f = byCoderMetric[coder].get(num);
+      return ['min', 'max'].some(sfx => f.has(sfx) && f.get(sfx) !== MISSING_SENTINEL);
+    };
 
     const usedMetrics = coder => [...byCoderMetric[coder].entries()]
       .filter(([, fields]) => [...fields.values()].some(v => v !== MISSING_SENTINEL))
@@ -1605,11 +1573,18 @@ function realignMetricRecords(records) {
     matches.forEach(([n1, n2]) => {
       matchIdx++;
       const f1 = byCoderMetric[c1].get(n1), f2 = byCoderMetric[c2].get(n2);
+      const mixed = quantRuleOn && isQuant(c1, n1) !== isQuant(c2, n2);
       f1.forEach((v1, suf) => {
         const v2 = f2.get(suf);
         if (v2 === undefined) return; // suffix not in this dataset's column set
-        const b1 = v1 === MISSING_SENTINEL ? BUCKET_MISSING : v1;
-        const b2 = v2 === MISSING_SENTINEL ? BUCKET_MISSING : v2;
+        let b1 = v1 === MISSING_SENTINEL ? BUCKET_MISSING : v1;
+        let b2 = v2 === MISSING_SENTINEL ? BUCKET_MISSING : v2;
+        if (mixed && !METRIC_IDENTITY_SUFFIXES.includes(suf)) {
+          const k1 = missKinds.get(`${c1}\x00${n1}\x00${suf}`), k2 = missKinds.get(`${c2}\x00${n2}\x00${suf}`);
+          if (MIXED_MODE === 'B' || (v1 === MISSING_SENTINEL && v2 === MISSING_SENTINEL && k1 !== k2)) {
+            b1 = '\x00MIXED_1\x00' + b1; b2 = '\x00MIXED_2\x00' + b2;
+          }
+        }
         const field = `MetricMatch${matchIdx}-${suf}`;
         realigned.push({ paper, rq, field, coder: c1, value: b1 });
         realigned.push({ paper, rq, field, coder: c2, value: b2 });
@@ -1679,12 +1654,23 @@ function groupIntoUnits(records) {
     }
   });
 
-  // Drop units where every coder left the field blank — e.g. a metric slot
-  // that simply doesn't apply to this paper. Nothing was coded by anyone, so
-  // there's nothing to agree or disagree on. Units where at least one coder
+  // Drop METRIC units where every coder left the field blank — e.g. a metric
+  // slot that simply doesn't apply to this paper. Nothing was coded by anyone,
+  // so there's nothing to agree or disagree on. Units where at least one coder
   // filled it in are kept as-is (including any MISSING_SENTINEL entries),
   // so a blank-vs-filled split still counts as a disagreement.
+  //
+  // Non-metric fields are NOT dropped. Per Aaron, a non-metric field should
+  // never truly be blank (blank means the coder did not enter N/A), and blank
+  // and N/A are the same answer there, so two coders with nothing there agree.
+  // Those units stay in, share one answer code, and score as agreement.
+  // Metric fields are those named Metric{n}-... (or MetricMatch{n}-... after
+  // realignment); in the 9/2 sheet they are the contiguous block after the
+  // "Metric list" column.
+  const METRIC_UNIT_FIELD = /^Metric(?:Match)?\d+-/i;
   units.forEach((coderMap, key) => {
+    const field = key.split('\x00')[2];
+    if (!METRIC_UNIT_FIELD.test(field)) return;
     if (Object.values(coderMap).every(v => v === MISSING_SENTINEL)) units.delete(key);
   });
   return units;
@@ -1813,9 +1799,7 @@ function showResults(res, errors) {
     );
   }
 
-  const vName = activeVersion
-    ? SHEET_VERSIONS[activeVersion].name + (SHEET_VERSIONS[activeVersion].templateVersion ? ` (template v${SHEET_VERSIONS[activeVersion].templateVersion})` : '')
-    : '';
+  const vName = activeVersion ? SHEET_VERSIONS[activeVersion].name : '';
   const ts = new Date().toLocaleString();
 
   // ── Header ──
@@ -1823,7 +1807,7 @@ function showResults(res, errors) {
   hdr.className = 'results-header';
   hdr.innerHTML = `
     <div>
-      <div class="results-title">IRR Results <span class="info-tooltip">ℹ<span class="tooltip-body"><strong>Methodology note</strong><br>Krippendorff's α is computed by recoding every (Paper, RQ, Field) unit so each unit gets codes unique to itself (matches share a code, mismatches get distinct codes, but no code is ever reused across units) — this matches Aaron's validated hand/R method. Metric fields are realigned by content before comparison (not by slot position), a metric with no counterpart on the other side counts as a full disagreement, and blank/N/A/#VALUE! are treated as one equivalent "nothing here" bucket. <strong>Overall is the simple average of the per-pair α figures below</strong> — each coder pair counts equally, regardless of how many RQs it contributed. Numeric values are normalized (85 == 85.0), multiselect fields (AI Innovation, Prompting techniques, Bias / Fairness Type, and each metric's analysis type, category and truth) are compared order-independently. Free-text fields may deflate alpha if included.</span></span></div>
+      <div class="results-title">IRR Results <span class="info-tooltip">ℹ<span class="tooltip-body"><strong>Methodology note</strong><br>Krippendorff's α is computed by recoding every (Paper, RQ, Field) unit so each unit gets codes unique to itself (matches share a code, mismatches get distinct codes, but no code is ever reused across units) — this matches Aaron's validated hand/R method. Metric fields are realigned by content before comparison (not by slot position), a metric with no counterpart on the other side counts as a full disagreement, and blank/N/A/#VALUE! are treated as one equivalent "nothing here" bucket. <strong>Overall is the simple average of the per-pair α figures below</strong> — each coder pair counts equally, regardless of how many RQs it contributed. Numeric values are normalized (85 == 85.0), multiselect cells compared order-independently. Free-text fields may deflate alpha if included.</span></span></div>
       <div class="results-meta">${vName ? vName+' · ' : ''}${papers.length} RQs · ${cols.length} variables · ${coders.length} coders · ${ts}</div>
     </div>
     <div class="export-btns">
