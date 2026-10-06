@@ -1,30 +1,36 @@
 # Changelog
 
-## 2026-10-01 — Checked against current templates (AS 1.5.0, IG 0.0.8, FF 0.0.2); multiselect fix
+## 2026-10-06 — 9/2 validation: nonmetric missing values, multiselect order, quantitative vs qualitative metrics
 
-Reviewed the three current coding spreadsheet templates in full: the Feature descriptions tab (Required? and Used for IRR? columns, plus the version number), the Coding sheet headers and field types, and the Field lists tab (dropdown options). The Item Generation and Formative Feedback column lists already matched their templates. The changes below are version tracking, auto-detection, and one multiselect correction.
+Validated against the 9/2/2026 round (three coder pairs: Alexander × Chris, Heeryung × Maggie, Aaron × Nidhi) using Aaron's own 1/0 scoring sheet. His flattened 1/0 block reproduces his reported alphas (0.754, 0.609, 0.945) with the same recoding the tool uses, so his scoring could be compared with the tool's unit by unit. Three changes follow from what that comparison found and from Aaron's answers about how he scores.
 
-### Reviewed with no change needed
-- **Item Generation (template v0.0.8, updated 2026-07-15).** All 181 fields marked "Used for IRR? = Y" are covered. 179 appear in the Coding sheet under the same name. The other two (`Fairness acknowledged`, `Bias / Equity Evaluated`) are listed on the Feature descriptions tab under older names. The Coding sheet headers and the version log use `Bias/Fairness acknowledged` and `Bias / Fairness Type`, which the tool already uses. v0.0.8 renamed `Bias / Fairness conclusion` to `Bias / Fairness addressed` (not used for IRR), added `Medical` and `Reading` to Education Topic, and made Education Content a multiselect. None of these affect the IRR column list.
-- **Formative Feedback (template v0.0.2, updated 2026-09-14).** All 191 fields marked "Used for IRR? = Y" match the tool's list exactly, and all appear in the Coding sheet headers. `Feedback usage reported` and `Feedback usage numbers` have no IRR flag and are not in the list. `Metric{n}-evaluation results` has no IRR flag.
-- **Automated Scoring (template v1.5.0).** All 161 columns in the tool match the Coding Sheet headers exactly, including the `Metric{n}-baseline min difference` spelling used for metrics 2 to 10. The template has no "Used for IRR?" column, so the IRR set cannot be checked against a flag. It did not receive the v0.0.7 fairness renames, so `Fairness acknowledged` and `Bias / Fairness Evaluated` are correct as they are. This closes the earlier open item about stale AS field names.
+### Changed
+- **Nonmetric fields that every coder left blank or marked N/A are now kept and scored as agreement.** Previously they were dropped from the calculation. Per Aaron, blank and N/A are the same answer in nonmetric fields: two coders with nothing there (both blank, both N/A, or one of each) agree, and nothing there against a real answer is a disagreement. The "every coder left it blank" pruning step now applies only to metric fields (`Metric{n}-...` and `MetricMatch{n}-...`), where it removes metric slots nobody used. On the 9/2 sheet this restored 4, 8, and 7 agreements per pair, all in `Bias / Fairness Type`, where N/A is a common dropdown choice, and moved the pair figures by less than 0.006.
+- **Order-independent comparison now covers every multiselect field, not only column names ending in "list".** Added: `Metric{n}-analysis type`, `Metric{n}-category`, `Metric{n}-truth`, `AI Innovation`, `Bias / Fairness Type`, `Prompting techniques`, `Education Segment`, `Education Content`, `Training source`, and `Testing source`, matching the coding sheet's own "Multiselection" data type. Previously "Evaluative Review, Pilot testing" and "Pilot testing, Evaluative Review" counted as a disagreement. Aaron scores them as agreement. On the 9/2 sheet this moved Alexander × Chris from 0.688 to 0.706 and Heeryung × Maggie from 0.706 to 0.713.
 
 ### Added
-- **Template version tracking.** Each domain definition now records its template version and last-updated date (AS 1.5.0 with no date recorded, IG 0.0.8 on 2026-07-15, FF 0.0.2 on 2026-09-14). The version cards, the auto-detect message and the results header display them.
-- **Two more Formative Feedback auto-detection columns.** `Feedback usage numbers` and `Feedback Content` were added to the Formative Feedback signature next to `Feedback usage reported`. All three exist only in the Formative Feedback template, and none appears in the current Item Generation or Automated Scoring templates. This confirms the earlier open question about the tiebreaker at the template level. Auto-detection was tested against the real headers of all three templates and returns the correct domain for each.
+- **Qualitative vs quantitative metrics (Item Generation and Formative Feedback only).** A metric counts as quantitative when the coder entered a real value in its min or max field, including text such as "mean=4 (sd=3.34)". When the two coders disagree on this for a matched metric, the sections are still the same metric, but a blank against an N/A in any value field (everything except `analysis type`, `category`, `type`, `assessment tool`, and `truth`) is a disagreement. Identity fields are compared normally. When both coders are quantitative, or neither is, blank against N/A remains an agreement. The rule is off for Automated Scoring and for sheets with no detected or selected version, and it needs the metric min and max columns to be selected. Records now keep whether a missing cell was truly blank or an explicit N/A-type entry, which this rule needs. On the 9/2 sheet it moved Heeryung × Maggie from 0.713 to 0.598 and left the other two pairs unchanged.
+- Considered and rejected: scoring every value field as a disagreement in a mixed pair. It follows the literal wording of Aaron's rule but overshot his scoring by up to 0.03, while the narrower blank-vs-N/A rule stays within 0.011 of it.
 
-### Fixed
-- **Multiselect fields were never compared order-independently.** The rule matched column names ending in "list", but every such column is free-text, so it never applied to anything. Two coders who chose the same options in a different order were scored as disagreeing. Order no longer matters for `AI Innovation`, `Prompting techniques`, `Bias / Fairness Type`, and each metric's `analysis type`, `category` and `truth`, which are the IRR-eligible fields marked Multiselection in the templates. `Education Content` is excluded on purpose, because it is single-select in Automated Scoring and one option (`Writing (Short Answer, Essays)`) contains a comma. Checked that no option in the affected fields contains a comma.
+### Validation
+Aaron's 1/0 rows, restricted to the fields the tool scores (so that free-text fields the tool excludes do not count), with two metric sections in RQ 367.1 rescored as disagreements at Aaron's direction, against the tool's output. Aaron × Nidhi leaves out RQ 368.1, a rejected paper that his sheet does not contain.
+
+| Pair | Tool before | Tool now | Aaron, tool's fields | Gap now |
+|---|---|---|---|---|
+| Alexander × Chris | 0.682 | 0.706 | 0.717 | −0.011 |
+| Heeryung × Maggie | 0.702 | 0.598 | 0.601 | −0.002 |
+| Aaron × Nidhi | 0.949 | 0.938 | 0.942 | −0.004 |
+
+Aaron's own reported figures were 0.754, 0.609, and 0.945. The difference from the "tool's fields" column is mostly the free-text fields he scores by meaning (about 0.037 for Alexander × Chris and 0.019 for Heeryung × Maggie). Aaron confirmed that RQ 367.1 metrics 5 and 6 should have been scored as disagreements, so his Heeryung × Maggie figure was too high and needs recalculating.
 
 ### Known open items
-- The multiselect fix changes how some cells are scored and has not been compared against Aaron's hand-calculated figures. Results for sheets with several selections in one cell may differ slightly from earlier rounds.
-- `Metric{n}-Additional evaluation method notes` is still marked as used for IRR in the Formative Feedback template (v0.0.2) and is still treated as free text. Pending confirmation with Aaron.
-- The Automated Scoring IRR column set is inferred, since its template has no IRR flag. Pending confirmation with Aaron.
-- The Item Generation Feature descriptions tab still shows two older fairness field names (see above). The tool follows the Coding sheet headers.
-- The Formative Feedback auto-detection columns are confirmed against the templates only, not yet against a real Formative Feedback export.
-- Field lists spell the metric `ROGUE` in the Automated Scoring and Item Generation templates and `ROUGE` in Formative Feedback. No effect on a single-domain comparison.
+- **A coder who skips a whole section.** Aaron scores this as a disagreement across the section (for example, the fairness fields in RQ 363.1). The tool does not implement it: because blank and N/A are the same answer in nonmetric fields, a skipped section against an N/A in a dependent field scores as agreement. Implementing it needs a definition of "section".
+- **How unrelated metrics are paired is unconfirmed.** The tool pairs metrics that share none of the identifying fields as one matched metric, based on a 6/18 example. Aaron has not yet said whether he would count them as one matched metric or as two unmatched ones.
+- **Rejected papers.** The combined coding sheet still contains rejected papers, and the tool cannot tell (the Inclusion Decision column read "Strong yes" or "Weak yes" for RQ 368.1). Remove their rows before uploading. Including RQ 368.1 raised Aaron × Nidhi by about 0.012.
+- Alexander × Chris is still 0.011 below Aaron on the same fields. The difference is concentrated in RQs 353.1 and 356.1 and is probably metric pairing, but it has not been traced.
+- The multiselect field list is hard-coded. A new multiselect field in a future coding sheet version needs to be added to it.
 
-## 2026-10-01 — Main file renamed to index.html
+## 2026-09-30 — Main file renamed to index.html
 
 Renamed `irr_calculator.html` to `index.html` so the tool is served at the repository root when hosted (for example, on GitHub Pages). No code changes: the tool does not reference its own filename, and exported files (`irr_results.csv`, `irr_results.xlsx`) are named independently of it.
 
