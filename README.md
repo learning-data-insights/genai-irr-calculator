@@ -1,6 +1,6 @@
 # IRR Calculator
 
-A browser-based Inter-Rater Reliability calculator for the GenAI Evidence Hub systematic literature review. Upload a coding sheet, pick your columns, and get Krippendorff's α — overall, by coder pair, and drilled down to individual papers and research questions. Single self-contained HTML file, no install, all computation happens client-side.
+A browser-based Inter-Rater Reliability calculator for the GenAI Evidence Hub systematic literature review. Upload a coding sheet, pick your columns, and get Krippendorff's α, overall, by coder pair, and drilled down to individual papers and research questions (or to individual units for sheets without a paper level). Built-in column sets cover the project's three coding domains, and an **Other / Custom** option handles any other coding sheet. Single self-contained HTML file, no install, all computation happens client-side.
 
 ## Getting Started
 
