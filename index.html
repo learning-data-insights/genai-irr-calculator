@@ -1373,6 +1373,15 @@ function isFreeText(colName) {
   return FREETEXT_FIELDS.has(c) || FREETEXT_METRIC_PATTERN.test(c);
 }
 
+// The percent-vs-decimal rule (3.89 vs 0.0389) applies only to fields that hold values a
+// coder could report either as a percentage or as a proportion: a metric's min and max, and
+// the baseline values and differences that belong to them (names containing min, max, or
+// difference). Counts such as "Total number of models tested" are excluded, so 20 and 2000
+// are never treated as equal. Per the statistical lead.
+function isProportionCol(colName) {
+  return /\b(min|max|difference)\b/i.test(colName);
+}
+
 function isNumericCol(colName) {
   // Heuristic: column name contains "number", "total", "count", "min", "max",
   // or ends with a number-like suffix
@@ -1638,7 +1647,7 @@ function groupIntoUnits(records) {
   // coders describing the same thing), never across units.
   units.forEach((coderMap, key) => {
     const field = key.split('\x00')[2];
-    if (!isNumericCol(field)) return;
+    if (!isProportionCol(field)) return;
     const entries = Object.entries(coderMap)
       .map(([coder, v]) => [coder, parseFloat(v)])
       .filter(([, n]) => !isNaN(n) && n !== 0);
