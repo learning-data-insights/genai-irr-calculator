@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-11-10 — Visual identity matched to triageQ, light theme, and color-independent score bands
+
+This release restyles the tool to coordinate with triageQ, the companion screening tool for the same project, and addresses a review comment that the contrast was hard to read and that the red/green score colors were hard to tell apart. No calculation, parsing, or export logic changed. In the script, the only difference is one inline border color on the drill-down hint.
+
+### Changed
+- **Light theme.** Dark text on a light background replaces light text on near-black. Secondary and label text were darkened to about 5:1 contrast or better against their backgrounds. These ratios were estimated from the hex values and not measured with a contrast checker.
+- **Colors follow triageQ's published palette.** The header is Deep Blue (#244467) with a Brand Blue rule, the logo mark is Amber (#EFBC54), and interactive accents are Brand Blue. The Calculate IRR button is a darker shade (#2a6aad) so its white label meets 4.5:1.
+- **Typeface is Inter**, replacing Syne and DM Mono, matching triageQ. Numerals are tabular so score columns align. Inter loads from Google Fonts and falls back to Helvetica Neue or Arial when offline.
+- **Favicon updated** to a Deep Blue rounded square with an amber "IRR" (SVG, PNG, and a square iOS version, all embedded). It replaces the blue-to-purple icon described under 2026-10-06. A `theme-color` meta tag was added.
+
+### Added
+- **Score bands carry a symbol as well as a color.** Values of 0.8 and above show a check mark in blue, values from 0.6 up to 0.8 show "!" in dark amber, and values below 0.6 show "×" in dark red. The symbols appear on the overall score, the per-research-question scores, and the table values. Green, amber, and red were previously the only cue. The cutoffs are unchanged, and the symbols are added in CSS only.
+
+### Known open items
+- The new theme has not been checked with a color-blindness simulator or a screen reader, or by the reviewer who raised the concern.
+
 ## 2026-10-06 — Other / Custom option, unit-level results, and scoring updates from the 9/2 validation
 
 This release adds an **Other / Custom** option for coding sheets that are not one of the three built-in domains (with a choice of unit and coder columns), unit-level results for sheets without a paper level, and a fix for garbled symbols in the CSV export. It also updates several scoring rules after comparing the tool with the statistical lead's own scoring of the 9/2/2026 round (three coder pairs: Pair A, Pair B, and Pair C, which includes the statistical lead's own coding). His flattened 1/0 block reproduces his reported alphas (0.754, 0.609, 0.945) with the same recoding the tool uses, so his scoring could be compared with the tool's unit by unit. The comparison is under Validation.
